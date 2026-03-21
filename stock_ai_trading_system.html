@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STOCK AI — Trading Intelligence System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --panel: #0d1117;
+    --panel2: #111820;
+    --border: #1e2d3d;
+    --accent: #00d4aa;
+    --accent2: #f59e0b;
+    --accent3: #ef4444;
+    --accent4: #3b82f6;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --green: #22c55e;
+    --red: #ef4444;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', 'Noto Sans KR', sans-serif;
+    --kr: 'Noto Sans KR', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--kr);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,170,0.012) 2px, rgba(0,212,170,0.012) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, #080c10 0%, #0a1520 100%);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 12px; color: #000; font-weight: 700;
+    animation: pulse-mark 3s ease-in-out infinite;
+  }
+  @keyframes pulse-mark {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,212,170,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(0,212,170,0); }
+  }
+  .logo-text { font-family: var(--sans); font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent); }
+  .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 2px; font-family: var(--mono); }
+
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    padding: 4px 10px; border-radius: 4px;
+    font-family: var(--mono); font-size: 11px; color: var(--red);
+  }
+  .live-dot { width: 6px; height: 6px; background: var(--red); border-radius: 50%; animation: blink 1s ease-in-out infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+  .clock {
+    font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 1px;
+  }
+
+  /* DISCLAIMER */
+  .disclaimer {
+    background: rgba(245,158,11,0.08);
+    border-bottom: 1px solid rgba(245,158,11,0.2);
+    padding: 8px 28px;
+    font-size: 11px; color: var(--accent2);
+    font-family: var(--mono);
+    letter-spacing: 0.3px;
+  }
+
+  /* MAIN LAYOUT */
+  .container { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+
+  /* PORTFOLIO HERO */
+  .portfolio-hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .hero-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .hero-card.teal::before { background: var(--accent); }
+  .hero-card.amber::before { background: var(--accent2); }
+  .hero-card.blue::before { background: var(--accent4); }
+  .hero-card.red::before { background: var(--red); }
+
+  .hero-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; font-family: var(--mono); margin-bottom: 8px; }
+  .hero-value { font-size: 26px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+  .hero-value.teal { color: var(--accent); }
+  .hero-value.amber { color: var(--accent2); }
+  .hero-value.green { color: var(--green); }
+  .hero-value.blue { color: var(--accent4); }
+  .hero-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* PROGRESS BAR */
+  .progress-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .progress-title { font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--accent); }
+  .progress-pct { font-family: var(--mono); font-size: 13px; color: var(--accent2); }
+  .progress-track {
+    height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%);
+    border-radius: 4px;
+    transition: width 1s ease;
+    box-shadow: 0 0 8px rgba(0,212,170,0.4);
+  }
+  .progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  /* GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* AI CHAT */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel2);
+  }
+  .panel-title {
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 2px; }
+  .tab {
+    padding: 6px 14px;
+    font-size: 12px; font-family: var(--mono);
+    background: transparent; border: 1px solid transparent;
+    color: var(--muted); cursor: pointer; border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .tab.active { background: rgba(0,212,170,0.1); border-color: rgba(0,212,170,0.3); color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* CHAT AREA */
+  .chat-area {
+    height: 400px; overflow-y: auto;
+    padding: 16px;
+    scroll-behavior: smooth;
+  }
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg { margin-bottom: 14px; animation: fadeInUp 0.3s ease; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .msg-role {
+    font-size: 10px; font-family: var(--mono); letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .msg-role.ai { color: var(--accent); }
+  .msg-role.user { color: var(--accent2); text-align: right; }
+  .msg-role.system { color: var(--muted); }
+
+  .msg-bubble {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px; line-height: 1.7;
+    max-width: 92%;
+  }
+  .msg-bubble.ai {
+    background: rgba(0,212,170,0.06);
+    border: 1px solid rgba(0,212,170,0.15);
+    border-left: 3px solid var(--accent);
+  }
+  .msg-bubble.user {
+    background: rgba(245,158,11,0.06);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-right: 3px solid var(--accent2);
+    margin-left: auto;
+    text-align: right;
+  }
+  .msg-bubble.system {
+    background: rgba(30,45,61,0.5);
+    border: 1px solid var(--border);
+    font-size: 11px; color: var(--muted); font-family: var(--mono);
+  }
+
+  /* SIGNAL BADGE */
+  .signal {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; font-family: var(--mono);
+  }
+  .signal.buy { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .signal.sell { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .signal.hold { background: rgba(245,158,11,0.15); color: var(--accent2); border: 1px solid rgba(245,158,11,0.3); }
+
+  /* CHAT INPUT */
+  .chat-input-wrap {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px;
+    background: var(--panel2);
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--kr);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: rgba(0,212,170,0.4); }
+  .chat-input::placeholder { color: var(--muted); }
+
+  .btn {
+    padding: 10px 18px;
+    background: var(--accent);
+    color: #000;
+    border: none; border-radius: 6px;
+    font-size: 12px; font-weight: 700; font-family: var(--mono);
+    cursor: pointer; letter-spacing: 0.5px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #00f5c4; transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,170,0.05); }
+
+  .btn.danger { background: var(--red); color: #fff; }
+
+  /* QUICK ACTIONS */
+  .quick-actions { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; background: var(--panel2); }
+  .quick-btn {
+    padding: 5px 12px;
+    background: var(--panel2); border: 1px solid var(--border);
+    color: var(--muted); border-radius: 4px; font-size: 11px; font-family: var(--mono);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .quick-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* RIGHT PANEL */
+  .right-panel { display: flex; flex-direction: column; gap: 16px; }
+
+  /* RISK CALCULATOR */
+  .form-group { margin-bottom: 12px; }
+  .form-label { font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 0.5px; margin-bottom: 4px; display: block; }
+  .form-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px; font-family: var(--mono);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: rgba(0,212,170,0.4); }
+
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .result-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px;
+  }
+  .result-label { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-bottom: 3px; }
+  .result-value { font-size: 14px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+  .result-value.red { color: var(--red); }
+  .result-value.green { color: var(--green); }
+
+  /* PORTFOLIO TABLE */
+  .port-table { width: 100%; padding: 0; }
+  .port-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 70px 70px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    transition: background 0.15s;
+    align-items: center;
+  }
+  .port-row:hover { background: rgba(0,212,170,0.03); }
+  .port-row.header { color: var(--muted); font-family: var(--mono); font-size: 10px; letter-spacing: 0.5px; padding: 8px 16px; }
+  .port-name { font-weight: 500; }
+  .port-ticker { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .port-num { font-family: var(--mono); text-align: right; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+
+  /* TICKER TAPE */
+  .ticker-wrap {
+    overflow: hidden; background: var(--panel2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0; margin-bottom: 20px;
+  }
+  .ticker-inner {
+    display: flex; gap: 40px;
+    animation: scroll-left 40s linear infinite;
+    width: max-content;
+  }
+  @keyframes scroll-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .ticker-item { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+  .ticker-sym { color: var(--accent2); font-weight: 700; }
+  .ticker-price { color: var(--text); }
+  .ticker-chg.up { color: var(--green); }
+  .ticker-chg.dn { color: var(--red); }
+
+  /* BOTTOM GRID */
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  /* LOADING */
+  .loading { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .loading span {
+    width: 6px; height: 6px; background: var(--accent);
+    border-radius: 50%; animation: bounce 1.2s ease-in-out infinite;
+  }
+  .loading span:nth-child(2) { animation-delay: 0.2s; }
+  .loading span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-6px); opacity: 1; } }
+
+  /* SCROLLBAR GLOBAL */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* PANEL BODY */
+  .panel-body { padding: 16px; }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 10px; letter-spacing: 2px; color: var(--muted);
+    font-family: var(--mono); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ANALYSIS MODE CONTENT */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* STRATEGY CARDS */
+  .strategy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .strategy-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 14px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .strategy-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .strategy-card.selected { border-color: var(--accent); background: rgba(0,212,170,0.05); }
+  .strategy-icon { font-size: 20px; margin-bottom: 6px; }
+  .strategy-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .strategy-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* MARKET STATUS */
+  .market-status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .market-item {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 10px; text-align: center;
+  }
+  .market-name { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-bottom: 4px; }
+  .market-val { font-size: 15px; font-weight: 700; font-family: var(--mono); }
+  .market-chg { font-size: 11px; margin-top: 2px; font-family: var(--mono); }
+
+  /* FULL WIDTH SECTION */
+  .full-width { margin-bottom: 16px; }
+
+  /* PORTFOLIO ADD */
+  .add-position-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 8px; align-items: end;
+    padding: 14px 16px;
+    background: var(--panel2);
+    border-top: 1px solid var(--border);
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--panel); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 12px 20px;
+    font-size: 13px; z-index: 9999;
+    animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+    color: var(--accent); font-family: var(--mono);
+  }
+  @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; pointer-events: none; } }
+
+  .text-right { text-align: right; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-8 { gap: 8px; }
+  .ml-auto { margin-left: auto; }
+
+  @media (max-width: 1100px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .portfolio-hero { grid-template-columns: 1fr 1fr; }
+    .bottom-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .portfolio-hero { grid-template-columns: 1fr; }
+    .add-position-form { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">AI</div>
+    <div>
+      <div class="logo-text">STOCK<span>AI</span></div>
+      <div class="logo-sub">TRADING INTELLIGENCE SYSTEM</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div> AI ONLINE</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="disclaimer">
+  ⚠ 본 시스템은 교육/정보 제공 목적입니다. AI의 분석은 투자 판단의 참고 자료이며, 투자 손익의 책임은 전적으로 본인에게 있습니다. 과거 실적이 미래 수익을 보장하지 않습니다.
+</div>
+
+<!-- TICKER TAPE -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="tickerInner">
+    <!-- 채워짐 -->
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- PORTFOLIO HERO STATS -->
+  <div class="portfolio-hero">
+    <div class="hero-card teal">
+      <div class="hero-label">현재 자본 (원금)</div>
+      <div class="hero-value teal" id="currentCapital">₩3,000,000</div>
+      <div class="hero-sub">시작 자본</div>
+    </div>
+    <div class="hero-card amber">
+      <div class="hero-label">평가 자산</div>
+      <div class="hero-value amber" id="totalAsset">₩3,000,000</div>
+      <div class="hero-sub" id="totalReturn">수익률: <span style="color:var(--muted)">0.00%</span></div>
+    </div>
+    <div class="hero-card blue">
+      <div class="hero-label">목표까지 필요 수익률</div>
+      <div class="hero-value blue" id="neededReturn">33,233%</div>
+      <div class="hero-sub">목표: ₩1,000,000,000</div>
+    </div>
+    <div class="hero-card red">
+      <div class="hero-label">리스크 한도 (일일)</div>
+      <div class="hero-value" id="dailyRisk" style="color:var(--accent2)">₩90,000</div>
+      <div class="hero-sub">자본의 3% 이내</div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <div class="progress-title">🎯 300만원 → 10억 달성 로드맵</div>
+      <div class="progress-pct" id="progressPct">0.30%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width: 0.30%"></div>
+    </div>
+    <div class="progress-labels">
+      <span>₩3,000,000</span>
+      <span>단계1: 1천만</span>
+      <span>단계2: 5천만</span>
+      <span>단계3: 1억</span>
+      <span>단계4: 5억</span>
+      <span>₩1,000,000,000</span>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <!-- AI TRADING CHAT -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><div class="panel-dot"></div> AI 트레이딩 어드바이저</div>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('analysis')">시장분석</button>
+          <button class="tab" onclick="switchTab('signal')">매수/매도 신호</button>
+          <button class="tab" onclick="switchTab('strategy')">전략</button>
+        </div>
+      </div>
+
+      <!-- TAB: 시장분석 -->
+      <div id="tab-analysis" class="tab-content active">
+        <div class="chat-area" id="chatArea">
+          <div class="msg">
+            <div class="msg-role system">■ SYSTEM BOOT</div>
+            <div class="msg-bubble system">STOCK AI TRADING SYSTEM v1.0 초기화 완료. 애널리스트 + 트레이더 + 리스크 관리 모듈 로드됨.</div>
+          </div>
+          <div class="msg">
+            <div class="msg-role ai">▶ AI ADVISOR</div>
+            <div class="msg-bubble ai">
+              안녕하세요! 저는 당신의 AI 트레이딩 어드바이저입니다. 📊<br><br>
+              현재 자본 <strong style="color:var(--accent)">₩3,000,000</strong>으로 시작해서 <strong style="color:var(--accent2)">₩10억</strong>을 달성하는 여정을 함께합니다.<br><br>
+              <strong>오늘 할 수 있는 것들:</strong><br>
+              • "오늘 시장 분석해줘" → 실시간 시장 분석<br>
+              • "삼성전자 분석해줘" → 종목 심층 분석<br>
+              • "지금 매수해도 돼?" → 타이밍 분석<br>
+              • "리스크 얼마나 잡아?" → 포지션 사이징<br><br>
+              아래 빠른 버튼을 눌러 시작하세요! 👇
+            </div>
+          </div>
+        </div>
+        <div class="quick-actions">
+          <button class="quick-btn" onclick="quickAsk('오늘 한국 주식시장 전반적인 상황을 분석해줘. 코스피/코스닥 흐름, 주도 섹터, 주의 사항 포함해서.')">📊 오늘 시장분석</button>
+          <button class="quick-btn" onclick="quickAsk('삼성전자 현재 상황 분석해줘. 기술적 분석, 매수매도 타이밍, 목표가 포함.')">📱 삼성전자</button>
+          <button class="quick-btn" onclick="quickAsk('300만원 소액으로 주식 투자 시작할 때 반드시 지켜야 할 리스크 관리 원칙 5가지를 알려줘.')">🛡️ 리스크관리</button>
+          <button class="quick-btn" onclick="quickAsk('지금 시장에서 단기 모멘텀이 강한 테마나 섹터를 분석해줘. 매수 관심 종목도 알려줘.')">🔥 핫 섹터</button>
+          <button class="quick-btn" onclick="quickAsk('300만원을 10억으로 만들기 위한 현실적인 투자 전략과 연간 목표 수익률을 설정해줘.')">🎯 10억 로드맵</button>
+          <button class="quick-btn" onclick="quickAsk('미국 증시 오늘 상황과 한국 주식에 미치는 영향을 분석해줘.')">🇺🇸 미국증시</button>
+        </div>
+        <div class="chat-input-wrap">
+          <input class="chat-input" id="chatInput" placeholder="분석할 종목명 또는 질문을 입력하세요..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}">
+          <button class="btn" id="sendBtn" onclick="sendMessage()">분석 →</button>
+        </div>
+      </div>
+
+      <!-- TAB: 매수매도 신호 -->
+      <div id="tab-signal" class="tab-content">
+        <div class="panel-body">
+          <div class="section-label">종목 신호 생성기</div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px;">
+            <input class="form-input" id="signalTicker" placeholder="종목명 입력 (예: 삼성전자, 카카오, LG에너지솔루션)" />
+            <button class="btn" onclick="generateSignal()">신호 생성</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+            <div>
+              <div class="form-label">매매 관점</div>
+              <select class="form-input" id="tradingView">
+                <option value="단기 (1~5일)">단기 (1~5일)</option>
+                <option value="중기 (1~4주)">중기 (1~4주)</option>
+                <option value="장기 (3개월 이상)">장기 (3개월 이상)</option>
+              </select>
+            </div>
+            <div>
+              <div class="form-label">분석 방식</div>
+              <select class="form-input" id="analysisMethod">
+                <option value="기술적 분석 중심">기술적 분석 중심</option>
+                <option value="기본적 분석 중심">기본적 분석 중심</option>
+                <option value="복합 분석">복합 분석</option>
+              </select>
+            </div>
+          </div>
+          <div id="signalResult" style="min-height:200px;">
+            <div style="color:var(--muted);font-size:12px;font-family:var(--mono);text-align:center;padding:60px 0;">종목을 입력하고 신호를 생성하세요</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: 전략 -->
+      <div id="tab-strategy" class="tab-content">
+        <div class="panel-body">
+          <div class="section-label">투자 전략 선택</div>
+          <div class="strategy-grid" style="margin-bottom:14px;">
+            <div class="strategy-card" onclick="selectStrategy(this,'모멘텀 트레이딩')">
+              <div class="strategy-icon">⚡</div>
+              <div class="strategy-name">모멘텀 트레이딩</div>
+              <div class="strategy-desc">강한 추세를 추종. 단기 고수익 추구</div>
+            </div>
+            <div class="strategy-card" onclick="selectStrategy(this,'가치 투자')">
+              <div class="strategy-icon">💎</div>
+              <div class="strategy-name">가치 투자</div>
+              <div class="strategy-desc">저평가 우량주 발굴. 중장기 보유</div>
+            </div>
+            <div class="strategy-card" onclick="selectStrategy(this,'스윙 트레이딩')">
+              <div class="strategy-icon">🌊</div>
+              <div class="strategy-name">스윙 트레이딩</div>
+              <div class="strategy-desc">1~4주 파동 타이밍 공략</div>
+            </div>
+            <div class="strategy-card" onclick="selectStrategy(this,'테마 투자')">
+              <div class="strategy-icon">🚀</div>
+              <div class="strategy-name">테마 투자</div>
+              <div class="strategy-desc">AI, 2차전지, 반도체 등 섹터 집중</div>
+            </div>
+          </div>
+          <div id="strategyAnalysis" style="min-height:160px;">
+            <div style="color:var(--muted);font-size:12px;font-family:var(--mono);text-align:center;padding:50px 0;">전략을 선택하면 AI가 분석합니다</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <!-- RISK CALCULATOR -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-dot" style="background:var(--accent2)"></div> 리스크 계산기</div>
+        </div>
+        <div class="panel-body">
+          <div class="form-group">
+            <label class="form-label">💰 총 자본 (원)</label>
+            <input class="form-input" id="rc_capital" value="3000000" oninput="calcRisk()" type="number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">📊 리스크 비율 (%)</label>
+            <input class="form-input" id="rc_risk_pct" value="2" oninput="calcRisk()" type="number" step="0.5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">💵 매수가 (원)</label>
+            <input class="form-input" id="rc_entry" value="70000" oninput="calcRisk()" type="number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">🛑 손절가 (원)</label>
+            <input class="form-input" id="rc_stop" value="66500" oninput="calcRisk()" type="number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">🎯 목표가 (원)</label>
+            <input class="form-input" id="rc_target" value="77000" oninput="calcRisk()" type="number">
+          </div>
+          <div class="result-grid" id="riskResults">
+            <div class="result-item">
+              <div class="result-label">매수 가능 주수</div>
+              <div class="result-value" id="r_shares">-</div>
+            </div>
+            <div class="result-item">
+              <div class="result-label">투자 금액</div>
+              <div class="result-value" id="r_invest">-</div>
+            </div>
+            <div class="result-item">
+              <div class="result-label">최대 손실</div>
+              <div class="result-value red" id="r_loss">-</div>
+            </div>
+            <div class="result-item">
+              <div class="result-label">목표 수익</div>
+              <div class="result-value green" id="r_profit">-</div>
+            </div>
+            <div class="result-item">
+              <div class="result-label">손절 비율</div>
+              <div class="result-value red" id="r_stop_pct">-</div>
+            </div>
+            <div class="result-item">
+              <div class="result-label">RRR (손익비)</div>
+              <div class="result-value" id="r_rrr">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MARKET STATUS -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-dot" style="background:var(--accent4)"></div> 주요 시장</div>
+          <button class="btn secondary" style="padding:4px 10px;font-size:11px;" onclick="refreshMarket()">↻ 새로고침</button>
+        </div>
+        <div class="panel-body">
+          <div class="market-status-grid" id="marketGrid">
+            <div class="market-item">
+              <div class="market-name">KOSPI</div>
+              <div class="market-val" style="color:var(--accent)">--</div>
+              <div class="market-chg" style="color:var(--muted)">--</div>
+            </div>
+            <div class="market-item">
+              <div class="market-name">KOSDAQ</div>
+              <div class="market-val" style="color:var(--accent)">--</div>
+              <div class="market-chg" style="color:var(--muted)">--</div>
+            </div>
+            <div class="market-item">
+              <div class="market-name">USD/KRW</div>
+              <div class="market-val" style="color:var(--accent)">--</div>
+              <div class="market-chg" style="color:var(--muted)">--</div>
+            </div>
+            <div class="market-item">
+              <div class="market-name">S&P 500</div>
+              <div class="market-val" style="color:var(--accent)">--</div>
+              <div class="market-chg" style="color:var(--muted)">--</div>
+            </div>
+            <div class="market-item">
+              <div class="market-name">NASDAQ</div>
+              <div class="market-val" style="color:var(--accent)">--</div>
+              <div class="market-chg" style="color:var(--muted)">--</div>
+            </div>
+            <div class="market-item">
+              <div class="market-name">BTC/USD</div>
+              <div class="market-val" style="color:var(--accent)">--</div>
+              <div class="market-chg" style="color:var(--muted)">--</div>
+            </div>
+          </div>
+          <div style="text-align:right;margin-top:8px;">
+            <button class="btn" style="padding:6px 12px;font-size:11px;" onclick="fetchMarketData()">AI로 시장 데이터 업데이트</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM GRID -->
+  <div class="bottom-grid">
+    <!-- PORTFOLIO -->
+    <div class="panel full-width">
+      <div class="panel-header">
+        <div class="panel-title"><div class="panel-dot" style="background:var(--green)"></div> 내 포트폴리오</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">총 <span id="portCount">0</span>개 종목</div>
+      </div>
+      <div class="port-table">
+        <div class="port-row header">
+          <div>종목명</div>
+          <div class="port-num">평균단가</div>
+          <div class="port-num">수량</div>
+          <div class="port-num">손익</div>
+        </div>
+        <div id="portfolioBody">
+          <div style="padding:30px 16px;text-align:center;color:var(--muted);font-size:12px;font-family:var(--mono);">
+            보유 종목이 없습니다. 아래 양식으로 추가하세요.
+          </div>
+        </div>
+      </div>
+      <div class="add-position-form">
+        <div>
+          <div class="form-label">종목명</div>
+          <input class="form-input" id="p_name" placeholder="예: 삼성전자">
+        </div>
+        <div>
+          <div class="form-label">매수가 (원)</div>
+          <input class="form-input" id="p_price" type="number" placeholder="70000">
+        </div>
+        <div>
+          <div class="form-label">수량 (주)</div>
+          <input class="form-input" id="p_qty" type="number" placeholder="10">
+        </div>
+        <div>
+          <div class="form-label">현재가 (원)</div>
+          <input class="form-input" id="p_current" type="number" placeholder="72000">
+        </div>
+        <div style="align-self:flex-end;">
+          <button class="btn" onclick="addPosition()">+ 추가</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRADING DIARY -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><div class="panel-dot" style="background:var(--accent2)"></div> 매매 일지</div>
+        <button class="btn secondary" style="padding:4px 10px;font-size:11px;" onclick="clearDiary()">지우기</button>
+      </div>
+      <div style="height:280px;overflow-y:auto;padding:12px;">
+        <div id="diaryArea">
+          <div style="color:var(--muted);font-size:12px;font-family:var(--mono);text-align:center;padding:60px 0;">매매 기록이 없습니다</div>
+        </div>
+      </div>
+      <div class="chat-input-wrap" style="gap:8px;flex-wrap:wrap;">
+        <input class="form-input" id="diary_ticker" placeholder="종목" style="width:80px;flex:0;">
+        <select class="form-input" id="diary_type" style="width:80px;flex:0;">
+          <option value="매수">매수</option>
+          <option value="매도">매도</option>
+        </select>
+        <input class="form-input" id="diary_price" type="number" placeholder="가격">
+        <input class="form-input" id="diary_memo" placeholder="메모">
+        <button class="btn" style="padding:8px 14px;" onclick="addDiary()">기록</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== STATE ==========
+let portfolio = JSON.parse(localStorage.getItem('sai_portfolio') || '[]');
+let diary = JSON.parse(localStorage.getItem('sai_diary') || '[]');
+let totalAsset = 3000000;
+let chatHistory = [];
+
+// ========== CLOCK ==========
+function updateClock() {
+  const now = new Date();
+  const kst = new Date(now.toLocaleString('en-US', {timeZone: 'Asia/Seoul'}));
+  document.getElementById('clock').textContent =
+    kst.toTimeString().slice(0,8) + ' KST';
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ========== TICKER ==========
+const tickers = [
+  {sym:'삼성전자', price:'71,200', chg:'+1.2%', up:true},
+  {sym:'SK하이닉스', price:'188,500', chg:'+2.8%', up:true},
+  {sym:'LG에너지솔루션', price:'325,000', chg:'-0.6%', up:false},
+  {sym:'NAVER', price:'182,000', chg:'+0.3%', up:true},
+  {sym:'카카오', price:'39,200', chg:'-1.1%', up:false},
+  {sym:'현대차', price:'213,000', chg:'+0.8%', up:true},
+  {sym:'POSCO홀딩스', price:'378,000', chg:'+3.1%', up:true},
+  {sym:'삼성SDI', price:'268,500', chg:'-1.8%', up:false},
+  {sym:'셀트리온', price:'192,000', chg:'+1.5%', up:true},
+  {sym:'크래프톤', price:'236,000', chg:'+4.2%', up:true},
+];
+function buildTicker() {
+  const all = [...tickers, ...tickers];
+  document.getElementById('tickerInner').innerHTML = all.map(t =>
+    `<div class="ticker-item">
+      <span class="ticker-sym">${t.sym}</span>
+      <span class="ticker-price">${t.price}</span>
+      <span class="ticker-chg ${t.up?'up':'dn'}">${t.chg}</span>
+    </div>`
+  ).join('');
+}
+buildTicker();
+
+// ========== PORTFOLIO ==========
+function renderPortfolio() {
+  const body = document.getElementById('portfolioBody');
+  document.getElementById('portCount').textContent = portfolio.length;
+  if (!portfolio.length) {
+    body.innerHTML = '<div style="padding:30px 16px;text-align:center;color:var(--muted);font-size:12px;font-family:var(--mono);">보유 종목이 없습니다. 아래 양식으로 추가하세요.</div>';
+    totalAsset = 3000000;
+    updateStats();
+    return;
+  }
+  let total = 0;
+  body.innerHTML = portfolio.map((p,i) => {
+    const pnl = (p.current - p.price) * p.qty;
+    const pnlPct = ((p.current - p.price) / p.price * 100).toFixed(2);
+    const val = p.current * p.qty;
+    total += val;
+    return `<div class="port-row">
+      <div><span class="port-name">${p.name}</span><br><span class="port-ticker">${p.qty}주 보유</span></div>
+      <div class="port-num">${p.price.toLocaleString()}</div>
+      <div class="port-num">${p.qty}</div>
+      <div class="port-num ${pnl>=0?'pos':'neg'}">
+        ${pnl>=0?'+':''}${Math.round(pnl).toLocaleString()}<br>
+        <span style="font-size:10px">(${pnl>=0?'+':''}${pnlPct}%)</span>
+      </div>
+    </div>`;
+  }).join('') +
+  `<div class="port-row" style="background:rgba(0,212,170,0.04);">
+    <div style="font-weight:600;color:var(--accent)">포트폴리오 총합</div>
+    <div></div>
+    <div></div>
+    <div class="port-num" style="color:var(--accent);font-weight:700">${total.toLocaleString()}원</div>
+  </div>`;
+  totalAsset = total;
+  updateStats();
+  localStorage.setItem('sai_portfolio', JSON.stringify(portfolio));
+}
+
+function addPosition() {
+  const name = document.getElementById('p_name').value.trim();
+  const price = parseFloat(document.getElementById('p_price').value);
+  const qty = parseInt(document.getElementById('p_qty').value);
+  const current = parseFloat(document.getElementById('p_current').value);
+  if (!name || !price || !qty || !current) { showToast('모든 항목을 입력하세요'); return; }
+  portfolio.push({name, price, qty, current});
+  renderPortfolio();
+  ['p_name','p_price','p_qty','p_current'].forEach(id => document.getElementById(id).value='');
+  showToast(`✓ ${name} 포트폴리오에 추가됨`);
+}
+
+// ========== STATS ==========
+function updateStats() {
+  const capital = 3000000;
+  const goal = 1000000000;
+  document.getElementById('totalAsset').textContent = '₩' + totalAsset.toLocaleString();
+  const ret = ((totalAsset - capital) / capital * 100).toFixed(2);
+  const retColor = ret >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('totalReturn').innerHTML = `수익률: <span style="color:${retColor}">${ret >= 0 ? '+' : ''}${ret}%</span>`;
+  const neededRet = ((goal / totalAsset - 1) * 100).toFixed(0);
+  document.getElementById('neededReturn').textContent = Number(neededRet).toLocaleString() + '%';
+  const pct = Math.min((totalAsset / goal * 100), 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct.toFixed(2) + '%';
+  const rc = parseFloat(document.getElementById('rc_capital').value) || capital;
+  document.getElementById('dailyRisk').textContent = '₩' + Math.round(rc * 0.03).toLocaleString();
+}
+
+// ========== RISK CALC ==========
+function calcRisk() {
+  const capital = parseFloat(document.getElementById('rc_capital').value) || 0;
+  const riskPct = parseFloat(document.getElementById('rc_risk_pct').value) || 2;
+  const entry = parseFloat(document.getElementById('rc_entry').value) || 0;
+  const stop = parseFloat(document.getElementById('rc_stop').value) || 0;
+  const target = parseFloat(document.getElementById('rc_target').value) || 0;
+  if (!capital || !entry || !stop || entry <= stop) return;
+  const maxLoss = capital * (riskPct / 100);
+  const riskPerShare = entry - stop;
+  const shares = Math.floor(maxLoss / riskPerShare);
+  const invest = shares * entry;
+  const loss = shares * riskPerShare;
+  const profit = shares * (target - entry);
+  const stopPct = ((entry - stop) / entry * 100).toFixed(2);
+  const rrr = ((target - entry) / (entry - stop)).toFixed(2);
+  document.getElementById('r_shares').textContent = shares.toLocaleString() + '주';
+  document.getElementById('r_invest').textContent = '₩' + Math.round(invest).toLocaleString();
+  document.getElementById('r_loss').textContent = '-₩' + Math.round(loss).toLocaleString();
+  document.getElementById('r_profit').textContent = '+₩' + Math.round(profit).toLocaleString();
+  document.getElementById('r_stop_pct').textContent = '-' + stopPct + '%';
+  const rrrEl = document.getElementById('r_rrr');
+  rrrEl.textContent = rrr + ':1';
+  rrrEl.style.color = parseFloat(rrr) >= 2 ? 'var(--green)' : parseFloat(rrr) >= 1 ? 'var(--accent2)' : 'var(--red)';
+  document.getElementById('dailyRisk').textContent = '₩' + Math.round(capital * 0.03).toLocaleString();
+}
+calcRisk();
+
+// ========== TABS ==========
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ========== AI CHAT ==========
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addMsg('user', msg);
+  await callAI(msg);
+}
+
+function quickAsk(msg) {
+  // Switch to analysis tab
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector('.tab').classList.add('active');
+  document.getElementById('tab-analysis').classList.add('active');
+  addMsg('user', msg);
+  callAI(msg);
+}
+
+function addMsg(role, content) {
+  const area = document.getElementById('chatArea');
+  const roleLabel = role === 'ai' ? '▶ AI ADVISOR' : role === 'user' ? '▷ YOU' : '■ SYSTEM';
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = `
+    <div class="msg-role ${role}">${roleLabel}</div>
+    <div class="msg-bubble ${role}">${content}</div>
+  `;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  if (role !== 'system') chatHistory.push({role: role === 'ai' ? 'assistant' : 'user', content});
+}
+
+function addLoadingMsg() {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = 'msg'; div.id = 'loadingMsg';
+  div.innerHTML = `<div class="msg-role ai">▶ AI ADVISOR</div>
+    <div class="msg-bubble ai"><div class="loading"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+
+async function callAI(userMsg) {
+  const btn = document.getElementById('sendBtn');
+  if (btn) btn.disabled = true;
+  addLoadingMsg();
+
+  const capital = parseFloat(document.getElementById('rc_capital').value) || 3000000;
+  const portfolioSummary = portfolio.length
+    ? portfolio.map(p => `${p.name}: ${p.qty}주 @ ₩${p.price} (현재 ₩${p.current})`).join(', ')
+    : '보유 종목 없음';
+
+  const systemPrompt = `당신은 경험이 풍부한 한국 주식 전문가입니다. 애널리스트, 트레이더, 리스크 관리 전문가 역할을 동시에 수행합니다.
+
+사용자 정보:
+- 투자 자본: ₩${capital.toLocaleString()}
+- 목표: ₩1,000,000,000 (10억원)
+- 현재 포트폴리오: ${portfolioSummary}
+- 투자 경험: 초보자
+
+당신의 역할:
+1. 시장 분석 시 데이터 기반으로 명확한 의견 제시
+2. 매수/매도 시그널은 구체적인 가격대와 근거 제시
+3. 리스크 관리는 반드시 자본 대비 퍼센트로 표현
+4. 초보자도 이해할 수 있는 쉬운 언어 사용
+5. 항상 손절가를 먼저 언급하고 탐욕보다 보존 우선
+
+형식 규칙:
+- 중요한 신호는 **[매수]**, **[매도]**, **[관망]** 태그 사용
+- 수치는 반드시 구체적으로 (예: "70,000~72,000원 구간에서 분할 매수")
+- 리스크 경고 시 ⚠️ 사용
+- 응답은 간결하되 핵심은 빠짐없이
+- 한국어로만 답변
+
+오늘 날짜: ${new Date().toLocaleDateString('ko-KR')}`;
+
+  try {
+    const messages = [
+      ...chatHistory.slice(-6),
+      {role: 'user', content: userMsg}
+    ];
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        tools: [{type: 'web_search_20250305', name: 'web_search'}],
+        messages
+      })
+    });
+    const data = await res.json();
+    document.getElementById('loadingMsg')?.remove();
+
+    let reply = data.content
+      ?.filter(b => b.type === 'text')
+      ?.map(b => b.text)
+      ?.join('\n') || '응답을 받지 못했습니다.';
+
+    // Format signals
+    reply = reply
+      .replace(/\*\*\[매수\]\*\*/g, '<span class="signal buy">▲ 매수</span>')
+      .replace(/\*\*\[매도\]\*\*/g, '<span class="signal sell">▼ 매도</span>')
+      .replace(/\*\*\[관망\]\*\*/g, '<span class="signal hold">◆ 관망</span>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--accent)">$1</strong>')
+      .replace(/\n/g, '<br>');
+
+    addMsg('ai', reply);
+  } catch(e) {
+    document.getElementById('loadingMsg')?.remove();
+    addMsg('ai', `⚠️ AI 연결 오류: ${e.message}. 잠시 후 다시 시도해주세요.`);
+  }
+  if (btn) btn.disabled = false;
+}
+
+// ========== SIGNAL GENERATOR ==========
+async function generateSignal() {
+  const ticker = document.getElementById('signalTicker').value.trim();
+  const view = document.getElementById('tradingView').value;
+  const method = document.getElementById('analysisMethod').value;
+  if (!ticker) { showToast('종목명을 입력하세요'); return; }
+
+  const result = document.getElementById('signalResult');
+  result.innerHTML = `<div style="text-align:center;padding:40px;"><div class="loading" style="justify-content:center"><span></span><span></span><span></span></div><div style="color:var(--muted);font-size:12px;font-family:var(--mono);margin-top:10px;">${ticker} 분석 중...</div></div>`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{type: 'web_search_20250305', name: 'web_search'}],
+        messages: [{
+          role: 'user',
+          content: `${ticker} 종목을 ${view} ${method}으로 분석해서 다음 JSON 형식으로만 응답해줘. 마크다운이나 코드블록 없이 순수 JSON만:
+{
+  "signal": "매수" 또는 "매도" 또는 "관망",
+  "strength": 1~5 (신호 강도),
+  "entry": "매수 진입가 범위",
+  "stop": "손절가",
+  "target1": "1차 목표가",
+  "target2": "2차 목표가",
+  "reason": "핵심 근거 2~3줄",
+  "risk": "주요 리스크",
+  "summary": "한줄 요약"
+}`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.filter(b=>b.type==='text')?.map(b=>b.text)?.join('') || '';
+    let json;
+    try { json = JSON.parse(text.replace(/```json|```/g,'').trim()); }
+    catch(e) { json = null; }
+
+    if (json) {
+      const sigClass = json.signal === '매수' ? 'buy' : json.signal === '매도' ? 'sell' : 'hold';
+      const dots = Array(5).fill(0).map((_,i) => `<span style="width:10px;height:10px;border-radius:50%;background:${i < json.strength ? (sigClass==='buy'?'var(--green)':sigClass==='sell'?'var(--red)':'var(--accent2)'):'var(--border)'};display:inline-block;margin:0 2px;"></span>`).join('');
+      result.innerHTML = `
+        <div style="padding:4px 0;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <span style="font-size:24px;font-weight:800;font-family:var(--mono);color:${sigClass==='buy'?'var(--green)':sigClass==='sell'?'var(--red)':'var(--accent2)'}">${ticker}</span>
+            <span class="signal ${sigClass}" style="font-size:14px;padding:4px 14px;">${sigClass==='buy'?'▲':sigClass==='sell'?'▼':'◆'} ${json.signal}</span>
+            <span style="margin-left:auto;">${dots}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div class="result-item"><div class="result-label">진입 구간</div><div class="result-value" style="font-size:12px;">${json.entry}</div></div>
+            <div class="result-item"><div class="result-label">🛑 손절가</div><div class="result-value red" style="font-size:12px;">${json.stop}</div></div>
+            <div class="result-item"><div class="result-label">🎯 1차 목표</div><div class="result-value green" style="font-size:12px;">${json.target1}</div></div>
+          </div>
+          <div style="background:rgba(0,212,170,0.05);border:1px solid rgba(0,212,170,0.15);border-radius:5px;padding:12px;font-size:12px;line-height:1.7;margin-bottom:8px;">
+            <div style="color:var(--accent);font-family:var(--mono);font-size:10px;margin-bottom:4px;">▶ 분석 근거</div>
+            ${json.reason}
+          </div>
+          <div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);border-radius:5px;padding:10px;font-size:11px;color:var(--muted);">
+            ⚠️ ${json.risk}
+          </div>
+        </div>`;
+    } else {
+      result.innerHTML = `<div style="font-size:12px;line-height:1.8;padding:4px 0;">${text.replace(/\n/g,'<br>')}</div>`;
+    }
+  } catch(e) {
+    result.innerHTML = `<div style="color:var(--red);font-size:12px;">오류: ${e.message}</div>`;
+  }
+}
+
+// ========== STRATEGY ==========
+async function selectStrategy(el, name) {
+  document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const area = document.getElementById('strategyAnalysis');
+  area.innerHTML = `<div style="text-align:center;padding:30px;"><div class="loading" style="justify-content:center"><span></span><span></span><span></span></div></div>`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `300만원 소액 투자자가 "${name}" 전략으로 10억을 목표로 할 때, 이 전략의 구체적인 실행 방법, 주의점, 추천 종목 유형을 3~4문단으로 간결하게 설명해줘. 한국어로.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.filter(b=>b.type==='text')?.map(b=>b.text)?.join('') || '';
+    area.innerHTML = `<div style="font-size:12px;line-height:1.8;color:var(--text);">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent)">$1</strong>')}</div>`;
+  } catch(e) {
+    area.innerHTML = `<div style="color:var(--red);font-size:12px;">${e.message}</div>`;
+  }
+}
+
+// ========== MARKET DATA ==========
+async function fetchMarketData() {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{type: 'web_search_20250305', name: 'web_search'}],
+        messages: [{
+          role: 'user',
+          content: `오늘 기준 코스피 지수, 코스닥 지수, USD/KRW 환율, S&P500, 나스닥, 비트코인 USD 가격을 검색해서 다음 JSON 형식으로만 답해줘:
+{"kospi":{"val":"2,650","chg":"+0.5%","up":true},"kosdaq":{"val":"850","chg":"-0.2%","up":false},"usdkrw":{"val":"1,325","chg":"+2","up":true},"sp500":{"val":"5,200","chg":"+0.3%","up":true},"nasdaq":{"val":"16,300","chg":"+0.8%","up":true},"btc":{"val":"85,000","chg":"+1.2%","up":true}}`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.filter(b=>b.type==='text')?.map(b=>b.text)?.join('') || '';
+    let json;
+    try { json = JSON.parse(text.replace(/```json|```/g,'').trim()); } catch(e) { return; }
+    const keys = ['kospi','kosdaq','usdkrw','sp500','nasdaq','btc'];
+    const names = ['KOSPI','KOSDAQ','USD/KRW','S&P 500','NASDAQ','BTC/USD'];
+    const grid = document.getElementById('marketGrid');
+    grid.innerHTML = keys.map((k,i) => {
+      const d = json[k] || {};
+      return `<div class="market-item">
+        <div class="market-name">${names[i]}</div>
+        <div class="market-val" style="color:${d.up?'var(--green)':'var(--red)'}">${d.val||'--'}</div>
+        <div class="market-chg ${d.up?'pos':'neg'}">${d.chg||'--'}</div>
+      </div>`;
+    }).join('');
+    showToast('✓ 시장 데이터 업데이트 완료');
+  } catch(e) { showToast('시장 데이터 업데이트 실패'); }
+}
+
+function refreshMarket() { fetchMarketData(); }
+
+// ========== DIARY ==========
+function renderDiary() {
+  const area = document.getElementById('diaryArea');
+  if (!diary.length) {
+    area.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:var(--mono);text-align:center;padding:60px 0;">매매 기록이 없습니다</div>';
+    return;
+  }
+  area.innerHTML = diary.slice().reverse().map(d => `
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <span class="signal ${d.type==='매수'?'buy':'sell'}" style="padding:2px 8px;flex-shrink:0;">${d.type}</span>
+      <div>
+        <strong>${d.ticker}</strong> @ ₩${Number(d.price).toLocaleString()}
+        <div style="color:var(--muted);font-size:11px;">${d.date} ${d.memo ? '· '+d.memo : ''}</div>
+      </div>
+    </div>
+  `).join('');
+  localStorage.setItem('sai_diary', JSON.stringify(diary));
+}
+
+function addDiary() {
+  const ticker = document.getElementById('diary_ticker').value.trim();
+  const type = document.getElementById('diary_type').value;
+  const price = document.getElementById('diary_price').value;
+  const memo = document.getElementById('diary_memo').value.trim();
+  if (!ticker || !price) { showToast('종목과 가격을 입력하세요'); return; }
+  diary.push({ticker, type, price, memo, date: new Date().toLocaleDateString('ko-KR')});
+  renderDiary();
+  ['diary_ticker','diary_price','diary_memo'].forEach(id => document.getElementById(id).value='');
+  showToast(`✓ ${ticker} ${type} 기록 완료`);
+}
+
+function clearDiary() {
+  if (confirm('모든 매매 일지를 삭제할까요?')) { diary = []; renderDiary(); }
+}
+
+// ========== TOAST ==========
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// ========== INIT ==========
+renderPortfolio();
+renderDiary();
+updateStats();
+</script>
+</body>
+</html>
